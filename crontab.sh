@@ -1,0 +1,1 @@
+5 0 15 * * /vol1/tools/autoacme/cert-up.sh update >> /vol1/tools/autoacme/run.log 2>&1

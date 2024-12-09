@@ -1,0 +1,6 @@
+synology
+/usr/syno/etc/certificate/_archive/FEL1gU/*
+
+fnos
+
+/usr/trim/var/trim_connect/ssls
