@@ -1,23 +1,25 @@
-#!/usr/bin/python3
+#!/bin/python3
 
-import sys
 import shutil
 import json
+import os
 import hashlib
 from OpenSSL import crypto
 
 # 入参
 domain = sys.argv[1]
 files_to_copy = [
-    '/path/to/source/cert.crt',  # 假设这些文件名是通用的，需要根据实际情况替换
-    '/path/to/source/cert.key',
-    '/path/to/source/fullchain.crt',
+    f'{domain}.crt',
+    f'{domain}.key',
+    'fullchain.crt',
 ]
-destination_dir = f'/usr/trim/var/trim_connect/ssls/{domain}/'
-config_files = ['network_cert_all.conf', 'network_gateway_cert.conf']
+cert_file = f'{domain}.cn.crt'
+cert_all = f'/usr/trim/etc/network_cert_all.conf'
+cert_gateway = f'network_gateway_cert.conf'
 
-def get_cert_dates(cert_path):
-    with open(cert_path, "rb") as cert_file:
+
+def get_cert_dates():
+    with open(cert_file, "rb") as cert_file:
         cert = crypto.load_certificate(crypto.FILETYPE_PEM, cert_file.read())
         start_date = cert.get_notBefore()
         end_date = cert.get_notAfter()
@@ -29,46 +31,64 @@ def calculate_md5(file_path):
         md5.update(f.read())
         return md5.hexdigest()
 
-def modify_config_files(domain, files_to_copy, destination_dir, config_files):
+def modify_config_files(domain, files_to_copy):
+    
+    start_date, end_date = get_cert_dates()
+    sum_value = calculate_md5(cert_file)
+    cert_dir = f'/usr/trim/var/trim_connect/ssls/{domain}/{start_date}/'
+
+    if not os.path.exists(cert_dir):
+        os.makedirs(cert_dir)
+
     for file in files_to_copy:
-        shutil.copy(file, destination_dir)
+        shutil.copy(file, cert_dir)
 
-    cert_path = f"{destination_dir}cert.crt"  # 假设证书文件名是 cert.crt
-    start_date, end_date = get_cert_dates(cert_path)
-    sum_value = calculate_md5(cert_path)
+    # network_cert_all.conf
+    if os.path.exists(f'{cert_all}.old'):
+        os.remove(f'{cert_all}.old')
+    shutil.copyfile(cert_all, f'{cert_all}.old')
+    with open(cert_all, 'r+') as file:
+        data = json.load(file)
+        new_cert = {
+            "domain": f"*.{domain}",
+            "san": [f"*.{domain}", domain],
+            "certificate": f"{cert_dir}{domain}.crt",
+            "fullchain": f"{cert_dir}fullchain.crt",
+            "privateKey": f"{cert_dir}{domain}.key",
+            "validFrom": start_date,
+            "validTo": end_date,
+            "sum": sum_value,
+            "used": true,
+            "appFlag": 0
+        }
+        data.append(new_cert)
+        for item in data:
+            if item["domain"] != domain:
+                item["used"] = false
+        file.seek(0)
+        json.dump(data, file, indent=4)
+        file.truncate()
 
-    for config_file in config_files:
-        with open(config_file, 'r+') as file:
-            data = json.load(file)
-            # 检查新的域名配置是否已经存在
-            existing_cert_found = False
-            for item in data:
-                if item["domain"] == f"*.{domain}":
-                    item["certificate"] = f"{destination_dir}cert.crt"
-                    item["fullchain"] = f"{destination_dir}fullchain.crt"
-                    item["privateKey"] = f"{destination_dir}cert.key"
-                    item["validFrom"] = start_date
-                    item["validTo"] = end_date
-                    item["sum"] = sum_value
-                    item["used"] = True  # 将指定的domain的"used"属性设置为True
-                    existing_cert_found = True
-                    break
-            if not existing_cert_found:
-                new_cert = {
-                    "domain": f"*.{domain}",
-                    "san": [f"*.{domain}", domain],
-                    "certificate": f"{destination_dir}cert.crt",
-                    "fullchain": f"{destination_dir}fullchain.crt",
-                    "privateKey": f"{destination_dir}cert.key",
-                    "validFrom": start_date,
-                    "validTo": end_date,
-                    "sum": sum_value,
-                    "used": True,
-                    "appFlag": 0
-                }
-                data.append(new_cert)
-            file.seek(0)
-            json.dump(data, file, indent=4)
-            file.truncate()
+    # network_gateway_cert.conf
+    if os.path.exists(f'{cert_gateway}.old'):
+        os.remove(f'{cert_gateway}.old')
+    shutil.copyfile(cert_gateway, f'{cert_gateway}.old')
+    with open(cert_gateway, 'r+') as file:
+        data = json.load(file)
+        new_cert = {
+            "host": domain,
+            "cert": f"{cert_dir}{domain}.crt",
+            "key": f"{cert_dir}{domain}.key"
+        }
+        data.append(new_cert)
+        for item in data:
+            if item["domain"] == fallback:
+                item["cert"] = f"{cert_dir}{domain}.crt"
+                item["key"] = f"{cert_dir}{domain}.key"
+        file.seek(0)
+        json.dump(data, file, indent=4)
+        file.truncate()
 
-modify_config_files(domain, files_to_copy, destination_dir, config_files)
+
+modify_config_files(domain, files_to_copy)
+

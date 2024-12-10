@@ -8,8 +8,7 @@ DATE_TIME=`date +%Y%m%d%H%M%S`
 CRT_BASE_PATH="/usr/trim/var/trim_connect/ssls"
 ACME_BIN_PATH=${BASE_ROOT}/acme.sh
 TEMP_PATH=${BASE_ROOT}/temp
-CRT_PATH_NAME=`cat ${CRT_BASE_PATH}/_archive/DEFAULT`
-CRT_PATH=${CRT_BASE_PATH}/_archive/${CRT_PATH_NAME}
+CRT_PATH=${CRT_BASE_PATH}/${DOMAIN}
 
 backupCrt () {
   echo 'begin backupCrt'
@@ -69,12 +68,12 @@ generateCrt () {
   source ${ACME_BIN_PATH}/acme.sh.env
   ${ACME_BIN_PATH}/acme.sh --force --log --issue --server letsencrypt --dns ${DNS} --dnssleep ${DNS_SLEEP} -d "${DOMAIN}" -d "*.${DOMAIN}" --keylength ec-256
   ${ACME_BIN_PATH}/acme.sh --force --installcert -d ${DOMAIN} -d *.${DOMAIN} --ecc \
-    --certpath ${CRT_PATH}/cert.pem \
-    --key-file ${CRT_PATH}/privkey.pem \
-    --fullchain-file ${CRT_PATH}/fullchain.pem
+    --certpath ${CRT_PATH}/${DOMAIN}.crt \
+    --key-file ${CRT_PATH}/${DOMAIN}.key \
+    --fullchain-file ${CRT_PATH}/fullchain.crt
   ${ACME_BIN_PATH}/acme.sh --renew -d ${DOMAIN} -d *.${DOMAIN} --force --ecc
 
-  if [ -s "${CRT_PATH}/cert.pem" ]; then
+  if [ -s "${CRT_PATH}/${DOMAIN}.crt" ]; then
     echo 'done generateCrt'
     return 0
   else
@@ -88,7 +87,7 @@ generateCrt () {
 updateService () {
   echo 'begin updateService'
   echo 'cp cert path to des'
-  python3 ${BASE_ROOT}/crt_cp.py ${CRT_PATH_NAME}
+  python3 ${BASE_ROOT}/crt_cp.py ${DOMAIN}
   echo 'done updateService'
 }
 
