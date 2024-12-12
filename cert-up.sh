@@ -51,7 +51,7 @@ installAcme () {
     local retry=0
     local success=false
 
-    while [ ${retry} -lt 3 ] && [ ${success} == false ]; do
+    while [ $retry -lt 3 ] && [ $success == false ]; do
       if curl -L -o ${SRC_TAR_NAME} ${ACME_SH_ADDRESS}; then
         success=true
       else
@@ -60,7 +60,7 @@ installAcme () {
       fi
     done
 
-    if [ ${success} == false ]; then
+    if [ $success == false ]; then
       echo "Failed to download acme.sh after 3 attempts"
       return 1
     fi
