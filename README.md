@@ -18,7 +18,7 @@ git clone https://github.com/redgreat/fnosacme.git
 3.添加执行权限
 ```shell
 cd fnosacme
-chmod +x cert-up.sh
+sudo chmod +x cert-up.sh
 ```
 
 4.修改配置文件

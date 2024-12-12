@@ -51,7 +51,7 @@ installAcme () {
     local retry=0
     local success=false
 
-    while [ $retry -lt 3 ] && [ $success == false ]; do
+    while [ $retry -lt 3 ] && [ $success = false ]; do
       if curl -L -o ${SRC_TAR_NAME} ${ACME_SH_ADDRESS}; then
         success=true
       else
@@ -60,7 +60,7 @@ installAcme () {
       fi
     done
 
-    if [ $success == false ]; then
+    if [ $success = false ]; then
       echo "Failed to download acme.sh after 3 attempts"
       return 1
     fi
@@ -82,6 +82,10 @@ generateCrt () {
   . ./config
   echo 'begin updating default cert by acme.sh tool'
   . ${ACME_BIN_PATH}/acme.sh.env
+
+  if [ ! -d ${CRT_TEM_PATH} ]; then
+    mkdir -p ${CRT_TEM_PATH}
+  fi
   ${ACME_BIN_PATH}/acme.sh --force --log --issue --server letsencrypt --dns ${DNS} --dnssleep ${DNS_SLEEP} -d "${DOMAIN}" -d "*.${DOMAIN}" --keylength ec-256
   ${ACME_BIN_PATH}/acme.sh --force --installcert -d ${DOMAIN} -d *.${DOMAIN} --ecc \
     --certpath ${CRT_TEM_PATH}/${DOMAIN}.crt \
@@ -103,7 +107,7 @@ generateCrt () {
 updateService () {
   echo 'begin updateService'
   echo 'cp cert path to fnos'
-  python3 ${BASE_ROOT}/cert-up.py ${DOMAIN}
+  python3 ${BASE_ROOT}/cert-cp.py ${DOMAIN}
   echo 'done updateService'
 }
 
