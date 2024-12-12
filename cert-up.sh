@@ -6,15 +6,15 @@ BASE_ROOT=$(cd "$(dirname "$0")";pwd)
 DATE_TIME=`date +%Y%m%d%H%M%S`
 # base crt path
 CRT_BASE_PATH="/usr/trim/var/trim_connect/ssls"
+CRT_TEM_PATH="${BASE_ROOT}/certs"
 ACME_BIN_PATH=${BASE_ROOT}/acme.sh
 TEMP_PATH=${BASE_ROOT}/temp
-CRT_PATH=${CRT_BASE_PATH}/${DOMAIN}
 
 backupCrt () {
   echo 'begin backupCrt'
   BACKUP_PATH=${BASE_ROOT}/backup/${DATE_TIME}
   mkdir -p ${BACKUP_PATH}
-  cp -r ${CRT_BASE_PATH} ${BACKUP_PATH}
+  cp -r ${CRT_BASE_PATH}/* ${BACKUP_PATH}
   echo ${BACKUP_PATH} > ${BASE_ROOT}/backup/latest
   echo 'done backupCrt'
   return 0
@@ -25,7 +25,7 @@ installAcme () {
   ALLOW_INSTALL=false
   ACME_SH_FILE=${ACME_BIN_PATH}/acme.sh
   ACME_SH_NEW_VERSION=$(wget -qO- -t1 -T2 "https://api.github.com/repos/acmesh-official/acme.sh/releases/latest" | grep "tag_name" | head -n 1 | awk -F ":" '{print $2}' | sed 's/\"//g;s/,//g;s/ //g')
-  ACME_SH_ADDRESS=https://ghproxy.com/https://github.com/acmesh-official/acme.sh/archive/${ACME_SH_NEW_VERSION}.tar.gz
+  ACME_SH_ADDRESS=https://ghp.ci/https://github.com/acmesh-official/acme.sh/archive/${ACME_SH_NEW_VERSION}.tar.gz
   if [ -z "${ACME_SH_NEW_VERSION}" ]; then
     echo 'unable to get new version number'
     return 0
@@ -42,13 +42,29 @@ installAcme () {
       echo 'skip acme installation'
     fi
   fi
-  if [ ${ALLOW_INSTALL} == true ]; then
+  if [ $ALLOW_INSTALL = true ]; then
     echo 'in progress...'
     mkdir -p ${TEMP_PATH}
     cd ${TEMP_PATH}
     echo 'begin downloading acme.sh tool...'
     SRC_TAR_NAME=acme.sh.tar.gz
-    curl -L -o ${SRC_TAR_NAME} ${ACME_SH_ADDRESS}
+    local retry=0
+    local success=false
+
+    while [ ${retry} -lt 3 ] && [ ${success} == false ]; do
+      if curl -L -o ${SRC_TAR_NAME} ${ACME_SH_ADDRESS}; then
+        success=true
+      else
+        retry=$((retry+1))
+        echo "Download attempt ${retry} failed, retrying..."
+      fi
+    done
+
+    if [ ${success} == false ]; then
+      echo "Failed to download acme.sh after 3 attempts"
+      return 1
+    fi
+
     SRC_NAME=`tar -tzf ${SRC_TAR_NAME} | head -1 | cut -f1 -d"/"`
     tar zxvf ${SRC_TAR_NAME}
     echo 'begin installing acme.sh tool...'
@@ -63,17 +79,17 @@ installAcme () {
 generateCrt () {
   echo 'begin generateCrt'
   cd ${BASE_ROOT}
-  source ./config
+  . ./config
   echo 'begin updating default cert by acme.sh tool'
-  source ${ACME_BIN_PATH}/acme.sh.env
+  . ${ACME_BIN_PATH}/acme.sh.env
   ${ACME_BIN_PATH}/acme.sh --force --log --issue --server letsencrypt --dns ${DNS} --dnssleep ${DNS_SLEEP} -d "${DOMAIN}" -d "*.${DOMAIN}" --keylength ec-256
   ${ACME_BIN_PATH}/acme.sh --force --installcert -d ${DOMAIN} -d *.${DOMAIN} --ecc \
-    --certpath ${CRT_PATH}/${DOMAIN}.crt \
-    --key-file ${CRT_PATH}/${DOMAIN}.key \
-    --fullchain-file ${CRT_PATH}/fullchain.crt
+    --certpath ${CRT_TEM_PATH}/${DOMAIN}.crt \
+    --key-file ${CRT_TEM_PATH}/${DOMAIN}.key \
+    --fullchain-file ${CRT_TEM_PATH}/fullchain.crt
   ${ACME_BIN_PATH}/acme.sh --renew -d ${DOMAIN} -d *.${DOMAIN} --force --ecc
 
-  if [ -s "${CRT_PATH}/${DOMAIN}.crt" ]; then
+  if [ -s "${CRT_TEM_PATH}/${DOMAIN}.crt" ]; then
     echo 'done generateCrt'
     return 0
   else
@@ -86,8 +102,8 @@ generateCrt () {
 
 updateService () {
   echo 'begin updateService'
-  echo 'cp cert path to des'
-  python3 ${BASE_ROOT}/crt_cp.py ${DOMAIN}
+  echo 'cp cert path to fnos'
+  python3 ${BASE_ROOT}/cert-up.py ${DOMAIN}
   echo 'done updateService'
 }
 
@@ -108,8 +124,8 @@ revertCrt () {
     echo "[ERR] backup path: ${BACKUP_PATH} not found."
     return 1
   fi
-  echo "${BACKUP_PATH}/certificate ${CRT_BASE_PATH}"
-  cp -rf ${BACKUP_PATH}/certificate/* ${CRT_BASE_PATH}
+  echo "Restoring backup from ${BACKUP_PATH}..."
+  cp -rf ${BACKUP_PATH}/* ${CRT_BASE_PATH}
   reloadWebService
   echo 'done revertCrt'
 }
