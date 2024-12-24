@@ -86,7 +86,7 @@ generateCrt () {
   if [ ! -d ${CRT_TEM_PATH} ]; then
     mkdir -p ${CRT_TEM_PATH}
   fi
-  ${ACME_BIN_PATH}/acme.sh --force --log --issue --server letsencrypt --dns ${DNS} --dnssleep ${DNS_SLEEP} -d "${DOMAIN}" -d "*.${DOMAIN}"
+  ${ACME_BIN_PATH}/acme.sh --force --log --issue --server letsencrypt --dns ${DNS} --dnssleep ${DNS_SLEEP} -d "${DOMAIN}" -d "*.${DOMAIN}" --cert-home ${CRT_TEM_PATH}
   CERT_REL_PATH=`python3 ${BASE_ROOT}/cert-cp.py ${DOMAIN}`
   ${ACME_BIN_PATH}/acme.sh --force --installcert -d ${DOMAIN} -d *.${DOMAIN} \
     --certpath ${CERT_REL_PATH}/${DOMAIN}.crt \
