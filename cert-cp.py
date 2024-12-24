@@ -11,11 +11,11 @@ from OpenSSL import crypto
 # 入参
 domain = sys.argv[1]
 files_to_copy = [
-    f'certs/{domain}.crt',
-    f'certs/{domain}.key',
-    f'certs/fullchain.crt',
+    f'certs/${DOMAIN}_ecc/{domain}.crt',
+    f'certs/${DOMAIN}_ecc/{domain}.key',
+    f'certs/${DOMAIN}_ecc/fullchain.crt',
 ]
-cert_file = f'certs/{domain}.crt'
+cert_file = f'certs/${DOMAIN}_ecc/{domain}.crt'
 cert_all = f'/usr/trim/etc/network_cert_all.conf'
 cert_gateway = f'/usr/trim/etc/network_gateway_cert.conf'
 
