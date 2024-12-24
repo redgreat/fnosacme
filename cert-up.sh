@@ -86,12 +86,13 @@ generateCrt () {
   if [ ! -d ${CRT_TEM_PATH} ]; then
     mkdir -p ${CRT_TEM_PATH}
   fi
-  ${ACME_BIN_PATH}/acme.sh --force --log --issue --server letsencrypt --dns ${DNS} --dnssleep ${DNS_SLEEP} -d "${DOMAIN}" -d "*.${DOMAIN}" --keylength ec-256
-  ${ACME_BIN_PATH}/acme.sh --force --installcert -d ${DOMAIN} -d *.${DOMAIN} --ecc \
-    --certpath ${CRT_TEM_PATH}/${DOMAIN}.crt \
-    --key-file ${CRT_TEM_PATH}/${DOMAIN}.key \
-    --fullchain-file ${CRT_TEM_PATH}/fullchain.crt
-  ${ACME_BIN_PATH}/acme.sh --renew -d ${DOMAIN} -d *.${DOMAIN} --force --ecc
+  ${ACME_BIN_PATH}/acme.sh --force --log --issue --server letsencrypt --dns ${DNS} --dnssleep ${DNS_SLEEP} -d "${DOMAIN}" -d "*.${DOMAIN}"
+  CERT_REL_PATH=`python3 ${BASE_ROOT}/cert-cp.py ${DOMAIN}`
+  ${ACME_BIN_PATH}/acme.sh --force --installcert -d ${DOMAIN} -d *.${DOMAIN} \
+    --certpath ${CERT_REL_PATH}/${DOMAIN}.crt \
+    --key-file ${CERT_REL_PATH}/${DOMAIN}.key \
+    --fullchain-file ${CERT_REL_PATH}/fullchain.crt
+  ${ACME_BIN_PATH}/acme.sh --renew -d ${DOMAIN} -d *.${DOMAIN} --force
 
   if [ -s "${CRT_TEM_PATH}/${DOMAIN}.crt" ]; then
     echo 'done generateCrt'
@@ -102,13 +103,6 @@ generateCrt () {
     revertCrt
     exit 1;
   fi
-}
-
-updateService () {
-  echo 'begin updateService'
-  echo 'cp cert path to fnos'
-  python3 ${BASE_ROOT}/cert-cp.py ${DOMAIN}
-  echo 'done updateService'
 }
 
 reloadWebService () {
@@ -139,7 +133,6 @@ updateCrt () {
   backupCrt
   installAcme
   generateCrt
-  updateService
   reloadWebService
   echo '------ end updateCrt ------'
 }

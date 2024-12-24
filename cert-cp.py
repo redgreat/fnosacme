@@ -42,6 +42,14 @@ def calculate_md5(file_path):
         return md5.hexdigest()
 
 
+def calculate_sha256(file_path):
+    sha256_hash = hashlib.sha256()
+    with open(file_path, "rb") as f:
+        for byte_block in iter(lambda: f.read(4096), b""):
+            sha256_hash.update(byte_block)
+    return sha256_hash.hexdigest()
+
+
 def modify_config_files(domain, files_to_copy):
     start_date, end_date = get_cert_dates(cert_file)
     sum_value = calculate_md5(cert_file)
@@ -101,6 +109,6 @@ def modify_config_files(domain, files_to_copy):
         file.seek(0)
         json.dump(data, file, indent=4)
         file.truncate()
-
+    return cert_dir
 
 modify_config_files(domain, files_to_copy)
