@@ -11,11 +11,11 @@ from OpenSSL import crypto
 # 入参
 domain = sys.argv[1]
 files_to_copy = [
-    f'certs/${DOMAIN}_ecc/{domain}.crt',
-    f'certs/${DOMAIN}_ecc/{domain}.key',
-    f'certs/${DOMAIN}_ecc/fullchain.crt',
+    f'certs/{domain}_ecc/{domain}.cer',
+    f'certs/{domain}_ecc/{domain}.key',
+    f'certs/{domain}_ecc/fullchain.cer',
 ]
-cert_file = f'certs/${DOMAIN}_ecc/{domain}.crt'
+cert_file = f'certs/{domain}_ecc/{domain}.cer'
 cert_all = f'/usr/trim/etc/network_cert_all.conf'
 cert_gateway = f'/usr/trim/etc/network_gateway_cert.conf'
 
@@ -71,8 +71,8 @@ def modify_config_files(domain, files_to_copy):
         new_cert = {
             "domain": f"*.{domain}",
             "san": [f"*.{domain}", domain],
-            "certificate": f"{cert_dir}{domain}.crt",
-            "fullchain": f"{cert_dir}fullchain.crt",
+            "certificate": f"{cert_dir}{domain}.cer",
+            "fullchain": f"{cert_dir}fullchain.cer",
             "privateKey": f"{cert_dir}{domain}.key",
             "validFrom": start_date * 1000,
             "validTo": end_date * 1000,
@@ -97,14 +97,14 @@ def modify_config_files(domain, files_to_copy):
         data = json.load(file)
         new_cert = {
             "host": domain,
-            "cert": f"{cert_dir}{domain}.crt",
+            "cert": f"{cert_dir}{domain}.cer",
             "key": f"{cert_dir}{domain}.key"
         }
         data = [item for item in data if item.get("host", "") != {domain}]
         data.append(new_cert)
         for item in data:
             if item["host"] == "fallback":
-                item["cert"] = f"{cert_dir}{domain}.crt"
+                item["cert"] = f"{cert_dir}{domain}.cer"
                 item["key"] = f"{cert_dir}{domain}.key"
         file.seek(0)
         json.dump(data, file, indent=4)

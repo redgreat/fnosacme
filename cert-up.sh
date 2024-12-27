@@ -86,15 +86,15 @@ generateCrt () {
   if [ ! -d ${CRT_TEM_PATH} ]; then
     mkdir -p ${CRT_TEM_PATH}
   fi
-  ${ACME_BIN_PATH}/acme.sh --force --log --issue --server letsencrypt --dns ${DNS} --dnssleep ${DNS_SLEEP} -d "${DOMAIN}" -d "*.${DOMAIN}" --cert-home ${CRT_TEM_PATH}/${DOMAIN}_ecc
+  ${ACME_BIN_PATH}/acme.sh --force --log --issue --server letsencrypt --dns ${DNS} --dnssleep ${DNS_SLEEP} -d "${DOMAIN}" -d "*.${DOMAIN}" --cert-home ${CRT_TEM_PATH}
   CERT_REL_PATH=`python3 ${BASE_ROOT}/cert-cp.py ${DOMAIN}`
   ${ACME_BIN_PATH}/acme.sh --force --installcert -d ${DOMAIN} -d *.${DOMAIN} \
-    --certpath ${CERT_REL_PATH}/${DOMAIN}.crt \
+    --certpath ${CERT_REL_PATH}/${DOMAIN}.cer \
     --key-file ${CERT_REL_PATH}/${DOMAIN}.key \
-    --fullchain-file ${CERT_REL_PATH}/fullchain.crt
+    --fullchain-file ${CERT_REL_PATH}/fullchain.cer
   ${ACME_BIN_PATH}/acme.sh --renew -d ${DOMAIN} -d *.${DOMAIN} --force
 
-  if [ -s "${CRT_TEM_PATH}/${DOMAIN}.crt" ]; then
+  if [ -s "${CRT_TEM_PATH}/${DOMAIN}.cer" ]; then
     echo 'done generateCrt'
     return 0
   else
